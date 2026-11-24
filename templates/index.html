@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horas de estudio | Dashboard académico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">∑</div><div><b>ESTUDIO</b><small>PROYECTO ACADÉMICO</small></div></div>
+    <div class="side-label">ANÁLISIS</div>
+    <nav class="side-nav" aria-label="Navegación del análisis">
+      <div class="nav-indicator" aria-hidden="true"></div>
+      <a class="nav-item active" href="#resumen" aria-current="location"><span>◫</span> Resumen general</a>
+      <a class="nav-item" href="#dataset"><span>▦</span> Dataset</a>
+      <a class="nav-item" href="#frecuencias"><span>▤</span> Frecuencias</a>
+      <a class="nav-item" href="#graficos"><span>◒</span> Visualizaciones</a>
+      <a class="nav-item" href="#preguntas"><span>?</span> Preguntas de análisis</a>
+      <a class="nav-item" href="#probabilidad"><span>◈</span> Probabilidad</a>
+      <a class="nav-item" href="#hallazgos"><span>✳</span> Hallazgos</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="side-note"><span class="pulse"></span><div><b>Datos conectados</b><small>Fuente local · Excel</small></div></div>
+      <small class="side-foot">CIENCIA DE DATOS<br>ESTADÍSTICA DESCRIPTIVA</small>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">PROYECTO CONJUNTO <span>/</span> DASHBOARD</div>
+      <div class="top-actions"><span class="live-dot"></span><span>Actualizado desde la base local</span><a class="download-btn" href="/datos-limpios">↓ <span>Base limpia</span></a></div>
+    </header>
+
+    <section class="hero" id="resumen">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> INVESTIGACIÓN ACADÉMICA · 2026</div>
+        <h1>Horas de estudio y<br><em>rendimiento académico.</em></h1>
+        <p>Análisis exploratorio de estudiantes de ciencias de la computación e ingeniería. Exploramos la distribución de las horas de estudio y su relación con el promedio acumulado (CGPA).</p>
+        <div class="hero-meta"><span>▦ 1.194 registros originales</span><span>◷ Consulta: 21 nov 2026</span><span>⌁ Fuente: Mendeley Data</span></div>
+      </div>
+      <div class="hero-art">
+        <div class="orb orb-one"></div><div class="orb orb-two"></div>
+        <div class="art-card"><div class="art-top"><span>STUDY / PERFORMANCE</span><span class="art-dot">●</span></div><div class="art-big">03<span>:13</span></div><div class="art-sub">HORAS PROMEDIO / DÍA</div><div class="mini-bars"><i style="height:28%"></i><i style="height:42%"></i><i style="height:35%"></i><i style="height:63%"></i><i style="height:52%"></i><i style="height:82%"></i><i style="height:70%"></i><i style="height:95%"></i><i style="height:62%"></i><i style="height:76%"></i><i style="height:48%"></i><i style="height:88%"></i></div><div class="art-foot"><span>DATA INSIGHT</span><b>EXPLORACIÓN ACTIVA ↗</b></div></div>
+        <div class="art-chip">r = <b id="hero-r">0.024</b><small>PEARSON</small></div>
+      </div>
+    </section>
+
+    <section class="problem-strip">
+      <div><span class="section-kicker">PREGUNTA CENTRAL</span><h3>¿Qué relación existe entre las horas de estudio diarias y el CGPA?</h3></div>
+      <div class="problem-divider"></div>
+      <div><span class="section-kicker">OBJETIVO</span><p>Describir las distribuciones, medir la asociación y comunicar los resultados sin atribuir causalidad.</p></div>
+    </section>
+
+    <section class="filter-panel">
+      <div class="filter-heading"><div><span class="section-kicker">EXPLORACIÓN INTERACTIVA</span><h2>Filtra los datos</h2></div><button class="reset-btn" id="reset">↺ Restablecer</button></div>
+      <div class="filters">
+        <label>PROGRAMA<select id="programa">{% for p in programas %}<option value="{{p}}">{{p}}</option>{% endfor %}</select></label>
+        <label>GÉNERO<select id="genero">{% for g in generos %}<option value="{{g}}">{{g}}</option>{% endfor %}</select></label>
+        <label class="range-label">HORAS DE ESTUDIO <span id="range-text">0 – {{max_horas}} horas</span><div class="range-inputs"><input id="hmin" type="range" min="0" max="{{max_horas}}" value="0"><input id="hmax" type="range" min="0" max="{{max_horas}}" value="{{max_horas}}"></div></label>
+      </div>
+      <div class="filter-foot"><span><i class="pulse"></i> Los indicadores y gráficos se recalculan con cada filtro.</span><b id="filter-count">Cargando registros...</b></div>
+    </section>
+
+    <section class="section-block" id="dataset">
+      <div class="section-title"><div><span class="section-kicker">BASE DEPURADA</span><h2>Explora los registros</h2><p class="section-desc">Consulta las columnas y los valores del dataset. La tabla respeta los filtros generales.</p></div><span class="muted-tag">DATOS FILTRADOS</span></div>
+      <article class="panel dataset-panel">
+        <div class="panel-heading">
+          <div><h3>Registros del dataset</h3><small id="dataset-count">Cargando registros...</small></div>
+          <div class="dataset-pagination"><button type="button" id="dataset-prev" disabled>← Anterior</button><span id="dataset-page">Página 1 de 1</span><button type="button" id="dataset-next" disabled>Siguiente →</button></div>
+        </div>
+        <div class="table-wrap dataset-wrap"><table id="tabla-dataset"><thead></thead><tbody><tr><td>Cargando registros...</td></tr></tbody></table></div>
+      </article>
+    </section>
+
+    <section class="section-block">
+      <div class="section-title"><div><span class="section-kicker">01 / INDICADORES CLAVE</span><h2>Una mirada a los datos</h2></div><span class="muted-tag">MUESTRA FILTRADA</span></div>
+      <div class="kpi-grid">
+        <article class="kpi-card"><div class="kpi-icon violet">▦</div><div class="kpi-label">ESTUDIANTES</div><div class="kpi-value" id="k-n">—</div><div class="kpi-note">Registros válidos del análisis</div><div class="kpi-accent violet-bg"></div></article>
+        <article class="kpi-card"><div class="kpi-icon blue">◷</div><div class="kpi-label">MEDIANA DE HORAS</div><div class="kpi-value" id="k-mediana">—</div><div class="kpi-note">Horas de estudio por día</div><div class="kpi-accent blue-bg"></div></article>
+        <article class="kpi-card"><div class="kpi-icon orange">⌁</div><div class="kpi-label">MEDIA DE HORAS</div><div class="kpi-value" id="k-media">—</div><div class="kpi-note" id="k-de">Desviación estándar: —</div><div class="kpi-accent orange-bg"></div></article>
+      </div>
+    </section>
+
+    <section class="section-block" id="frecuencias">
+      <div class="section-title"><div><span class="section-kicker">02 / TRATAMIENTO ESTADÍSTICO</span><h2>Distribución y frecuencias</h2><p class="section-desc">Agrupación por intervalos mediante la regla de Sturges. hi es la frecuencia relativa y Hi su acumulada.</p></div></div>
+      <div class="table-grid">
+        <article class="panel"><div class="panel-heading"><div><h3>Horas de estudio</h3><small>Tabla de frecuencias agrupadas</small></div><span class="table-unit">HORAS / DÍA</span></div><div class="table-wrap"><table id="tabla-horas"><thead><tr><th>Intervalo</th><th>xi</th><th>fi</th><th>hi</th><th>Fi</th><th>Hi</th></tr></thead><tbody></tbody></table></div></article>
+        <article class="panel"><div class="panel-heading"><div><h3>Rendimiento académico</h3><small>Tabla de frecuencias agrupadas</small></div><span class="table-unit">CGPA / 4</span></div><div class="table-wrap"><table id="tabla-cgpa"><thead><tr><th>Intervalo</th><th>xi</th><th>fi</th><th>hi</th><th>Fi</th><th>Hi</th></tr></thead><tbody></tbody></table></div></article>
+      </div>
+      <div class="stats-grid">
+        <article class="panel stats-panel"><div class="panel-heading"><div><h3>Medidas descriptivas</h3><small>Variables principales · datos sin agrupar</small></div></div><div class="table-wrap"><table id="tabla-medidas"><thead><tr><th>Medida</th><th>Horas</th><th>CGPA</th></tr></thead><tbody></tbody></table></div></article>
+      </div>
+    </section>
+
+    <section class="section-block" id="graficos">
+      <div class="section-title"><div><span class="section-kicker">03 / VISUALIZACIÓN</span><h2>Explora las distribuciones</h2><p class="section-desc">Barras, histogramas y ojivas para observar la forma y acumulación de los datos.</p></div></div>
+      <div class="chart-grid">
+        <article class="panel chart-panel"><div class="panel-heading"><div><h3>Frecuencia por intervalos</h3><small>Horas de estudio · gráfico de barras</small></div><span class="chart-number">01</span></div><div id="chart-barras" class="chart"></div></article>
+        <article class="panel chart-panel"><div class="panel-heading"><div><h3>Distribución de horas</h3><small>Histograma de frecuencias</small></div><span class="chart-number">02</span></div><div id="chart-hist-horas" class="chart"></div></article>
+        <article class="panel chart-panel"><div class="panel-heading"><div><h3>Frecuencia acumulada</h3><small>Ojiva · horas de estudio</small></div><span class="chart-number">03</span></div><div id="chart-ojiva" class="chart"></div></article>
+        <article class="panel chart-panel"><div class="panel-heading"><div><h3>Distribución del CGPA</h3><small>Histograma de frecuencias</small></div><span class="chart-number">04</span></div><div id="chart-hist-cgpa" class="chart"></div></article>
+      </div>
+    </section>
+
+    <section class="section-block" id="preguntas">
+      <div class="section-title"><div><span class="section-kicker">04 / PREGUNTAS DE ANÁLISIS</span><h2>Preguntas de análisis</h2><p class="section-desc">Selecciona una pregunta para ir a su hallazgo.</p></div></div>
+      <div class="question-picker" aria-label="Preguntas de análisis">
+        <button class="question-tab active" type="button" data-question="horas" aria-pressed="true">01 <span>¿Cuál es el comportamiento típico de las horas de estudio diarias?</span></button>
+        <button class="question-tab" type="button" data-question="cgpa" aria-pressed="false">02 <span>¿Cómo se distribuye el rendimiento académico de los estudiantes según su CGPA?</span></button>
+        <button class="question-tab" type="button" data-question="probabilidad" aria-pressed="false">03 <span>¿Cuál es la probabilidad de estudiar 3 o más horas al día y tener un CGPA de 3.21 o superior?</span></button>
+      </div>
+    </section>
+
+    <section class="section-block" id="probabilidad">
+      <div class="section-title"><div><span class="section-kicker">05 / MODELO PROBABILÍSTICO</span><h2>Probabilidades de los sucesos</h2><p class="section-desc">Probabilidades empíricas de los eventos definidos con las medianas filtradas.</p></div></div>
+      <div class="prob-layout">
+        <article class="panel probability-panel"><div class="panel-heading"><div><h3>Medidas de probabilidad</h3><small>Regla de adición y producto</small></div></div><div class="prob-values">
+          <div><span>P(A)</span><b id="p-a">—</b></div><div><span>P(B)</span><b id="p-b">—</b></div><div><span>P(A ∩ B)</span><b id="p-ab">—</b></div><div class="highlight-prob"><span>P(A ∪ B)</span><b id="p-union">—</b></div>
+        </div><div class="formula">
+          <strong class="formula-title">Unión de sucesos independientes</strong>
+          <p class="formula-description">Si A y B fueran independientes, se sustituye P(A ∩ B) por P(A) · P(B).</p>
+          <div class="formula-equation">P(A ∪ B) = P(A) + P(B) − P(A) · P(B)</div>
+          <small class="formula-caption">Cálculo con los datos y filtros actuales</small>
+          <div class="formula-calculation" id="union-independiente">—</div>
+        </div></article>
+      </div>
+    </section>
+
+    <section class="section-block" id="hallazgos">
+      <div class="section-title"><h2>Hallazgos</h2></div>
+      <div class="findings-grid" id="findings">
+        <article class="finding">
+          <span>01</span><div class="finding-body"><b>¿Cuál es el comportamiento típico de las horas de estudio diarias?</b>
+            <div class="finding-metrics">
+              <div><small>Promedio</small><strong id="finding-horas-media">—</strong></div>
+              <div><small>Mediana</small><strong id="finding-horas-mediana">—</strong></div>
+              <div><small>Moda</small><strong id="finding-horas-moda">—</strong></div>
+              <div><small>Rango observado</small><strong id="finding-horas-rango">—</strong></div>
+            </div>
+            <p class="finding-answer" id="finding-horas-respuesta">Calculando...</p>
+          </div>
+        </article>
+        <article class="finding">
+          <span>02</span><div class="finding-body"><b>¿Cómo se distribuye el rendimiento académico según el CGPA?</b>
+            <div class="finding-metrics">
+              <div><small>Promedio CGPA</small><strong id="finding-cgpa-media">—</strong></div>
+              <div><small>Mediana</small><strong id="finding-cgpa-mediana">—</strong></div>
+              <div><small>Moda</small><strong id="finding-cgpa-moda">—</strong></div>
+              <div><small>Rango observado</small><strong id="finding-cgpa-rango">—</strong></div>
+            </div>
+            <p class="finding-answer" id="finding-cgpa-respuesta">Calculando...</p>
+          </div>
+        </article>
+        <article class="finding">
+          <span>03</span><div class="finding-body"><b>¿Cuál es la probabilidad de que un estudiante estudie 3 o más horas al día y tenga un CGPA de 3,21 o superior?</b>
+            <div class="finding-metrics">
+              <div><small>P(A): estudia 3+ horas</small><strong id="finding-p-a">—</strong></div>
+              <div><small>P(B): CGPA ≥ 3,21</small><strong id="finding-p-b">—</strong></div>
+              <div><small>P(A ∩ B): ambas condiciones</small><strong id="finding-p-ab">—</strong></div>
+              <div><small>P(A) × P(B)</small><strong id="finding-p-producto">—</strong></div>
+            </div>
+            <p class="finding-answer" id="finding-probabilidad-respuesta">Calculando...</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="footer"><p>Proyecto conjunto · Ciencia de Datos y Estadística Descriptiva</p><p>Fuente: Students_Academic_Performance_Evaluation_Dataset · Mendeley Data</p><span>ANÁLISIS EXPLORATORIO · NO CAUSAL</span></footer>
+  </main>
+</div>
+<div id="toast" class="toast">Análisis actualizado</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d=2) => v === null || v === undefined || Number.isNaN(Number(v)) ? "—" : Number(v).toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtModa = (v, d=2) => String(v).split(", ").map(value => fmt(value, d)).join(", ");
+const entero = v => Number(v).toLocaleString("es-CO");
+const pct = v => fmt(v*100,1)+"%";
+const pct2 = v => fmt(v*100,2)+"%";
+const plotLayout = {
+  paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
+  font:{family:"DM Sans, sans-serif",color:"#77758a",size:11},
+  margin:{l:48,r:18,t:12,b:55},
+  xaxis:{gridcolor:"#f0eff5",zerolinecolor:"#e8e6ef",linecolor:"#e8e6ef"},
+  yaxis:{gridcolor:"#f0eff5",zerolinecolor:"#e8e6ef",linecolor:"#e8e6ef"},
+  showlegend:false
+};
+const config = {responsive:true,displayModeBar:false};
+function plot(id,data,extra={}) { Plotly.react(id,data,{...plotLayout,...extra},config); }
+function renderTable(id, rows) {
+  const body = $(id).querySelector("tbody");
+  body.innerHTML = rows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join("")}</tr>`).join("");
+}
+function renderFrequency(id, rows) {
+  renderTable(id, rows.map(r=>[
+    r.intervalo, fmt(r.marca,2), entero(r.fi), fmt(r.hi*100,1)+"%", entero(r.Fi), fmt(r.Hi*100,1)+"%"
+  ]));
+}
+let datasetFiltros = new URLSearchParams();
+let datasetPaginaActual = 1;
+let datasetSolicitud = 0;
+async function actualizarDataset(pagina=1) {
+  const solicitud = ++datasetSolicitud;
+  const params = new URLSearchParams(datasetFiltros);
+  params.set("pagina", pagina);
+  try {
+    const response = await fetch("/api/datos?"+params.toString());
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || "No fue posible cargar el dataset.");
+    if (solicitud !== datasetSolicitud) return;
+    const head = $("tabla-dataset").querySelector("thead");
+    const body = $("tabla-dataset").querySelector("tbody");
+    const headerRow = document.createElement("tr");
+    data.columnas.forEach(columna => {
+      const th = document.createElement("th");
+      th.textContent = columna;
+      th.title = columna;
+      headerRow.appendChild(th);
+    });
+    head.replaceChildren(headerRow);
+    body.replaceChildren();
+    if (data.registros.length === 0) {
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.colSpan = Math.max(1, data.columnas.length);
+      cell.textContent = "No hay registros para los filtros seleccionados.";
+      row.appendChild(cell);
+      body.appendChild(row);
+    } else {
+      data.registros.forEach(registro => {
+        const row = document.createElement("tr");
+        data.columnas.forEach(columna => {
+          const cell = document.createElement("td");
+          const value = registro[columna];
+          cell.textContent = value === null || value === undefined ? "—" : String(value);
+          cell.title = cell.textContent;
+          row.appendChild(cell);
+        });
+        body.appendChild(row);
+      });
+    }
+    datasetPaginaActual = data.pagina;
+    $("dataset-count").textContent = `${entero(data.total)} registros filtrados`;
+    $("dataset-page").textContent = `Página ${data.pagina} de ${data.paginas}`;
+    $("dataset-prev").disabled = data.pagina <= 1;
+    $("dataset-next").disabled = data.pagina >= data.paginas;
+  } catch(error) {
+    if (solicitud !== datasetSolicitud) return;
+    $("dataset-count").textContent = "Error al cargar los registros.";
+    $("dataset-page").textContent = "Dataset no disponible";
+    $("dataset-prev").disabled = true;
+    $("dataset-next").disabled = true;
+    const body = $("tabla-dataset").querySelector("tbody");
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = Math.max(1, $("tabla-dataset").querySelectorAll("thead th").length);
+    cell.textContent = error.message;
+    row.appendChild(cell);
+    body.replaceChildren(row);
+    console.error(error);
+  }
+}
+const questionButtons = Array.from(document.querySelectorAll(".question-tab"));
+function seleccionarPregunta(button, index) {
+  questionButtons.forEach(item => {
+    const selected = item === button;
+    item.classList.toggle("active", selected);
+    item.setAttribute("aria-pressed", String(selected));
+  });
+  const finding = document.querySelectorAll("#findings .finding")[index];
+  finding.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "center"
+  });
+}
+function limpiarHallazgos(mensaje) {
+  [
+    "finding-horas-media","finding-horas-mediana","finding-horas-moda","finding-horas-rango",
+    "finding-cgpa-media","finding-cgpa-mediana","finding-cgpa-moda","finding-cgpa-rango",
+    "finding-p-a","finding-p-b","finding-p-ab","finding-p-producto"
+  ].forEach(id => { $(id).textContent = "—"; });
+  ["finding-horas-respuesta","finding-cgpa-respuesta","finding-probabilidad-respuesta"]
+    .forEach(id => { $(id).textContent = mensaje; });
+}
+async function actualizar() {
+  let min = Number($("hmin").value), max = Number($("hmax").value);
+  if (min > max) { [min,max] = [max,min]; $("hmin").value=min; $("hmax").value=max; }
+  $("range-text").textContent = `${min} – ${max} horas`;
+  const params = new URLSearchParams({hmin:min,hmax:max,programa:$("programa").value,genero:$("genero").value});
+  datasetFiltros = new URLSearchParams(params);
+  actualizarDataset(1);
+  try {
+    const r = await fetch("/api/analisis?"+params.toString());
+    const d = await r.json();
+    if (d.error) {
+      $("filter-count").textContent=d.error;
+      limpiarHallazgos(d.error);
+      return;
+    }
+    $("filter-count").textContent = `${entero(d.n)} estudiantes en la selección`;
+    $("k-n").textContent=entero(d.n);
+    $("k-mediana").textContent=fmt(d.horas.mediana,1);
+    $("k-media").textContent=fmt(d.horas.media,2)+" h";
+    $("k-de").textContent="Desviación estándar: "+fmt(d.horas.desviacion,2)+" h";
+    $("hero-r").textContent=fmt(d.regresion.r,3);
+
+    renderFrequency("tabla-horas",d.tabla_horas);
+    renderFrequency("tabla-cgpa",d.tabla_cgpa);
+    const measures=[
+      ["Media",fmt(d.horas.media,3),fmt(d.cgpa.media,3)],
+      ["Mediana",fmt(d.horas.mediana,3),fmt(d.cgpa.mediana,3)],
+      ["Moda",fmtModa(d.horas.moda,2),fmtModa(d.cgpa.moda,2)],
+      ["Q1",fmt(d.horas.q1,3),fmt(d.cgpa.q1,3)],
+      ["Q2",fmt(d.horas.q2,3),fmt(d.cgpa.q2,3)],
+      ["Q3",fmt(d.horas.q3,3),fmt(d.cgpa.q3,3)],
+      ["Varianza muestral",fmt(d.horas.varianza,3),fmt(d.cgpa.varianza,3)],
+      ["Desviación estándar",fmt(d.horas.desviacion,3),fmt(d.cgpa.desviacion,3)],
+      ["Coeficiente de variación",fmt(d.horas.cv,2)+"%",fmt(d.cgpa.cv,2)+"%"]
+    ];
+    renderTable("tabla-medidas",measures);
+
+    plot("chart-barras",[{x:d.graficos.barras_horas.x,y:d.graficos.barras_horas.y,type:"bar",marker:{color:"#7767e8",cornerradius:5},hovertemplate:"%{x}<br>Estudiantes: %{y}<extra></extra>"}],{yaxis:{...plotLayout.yaxis,title:"Frecuencia (fi)"},xaxis:{...plotLayout.xaxis,title:"Intervalos de horas"}});
+    plot("chart-hist-horas",[{x:d.graficos.hist_horas.x,y:d.graficos.hist_horas.y,type:"bar",width:d.graficos.hist_horas.ancho,marker:{color:"#32a7c8",line:{color:"#fff",width:1}},hovertemplate:"Horas: %{x}<br>Frecuencia: %{y}<extra></extra>"}],{bargap:0.04,xaxis:{...plotLayout.xaxis,title:"Horas de estudio por día"},yaxis:{...plotLayout.yaxis,title:"Frecuencia"}});
+    plot("chart-ojiva",[{x:d.graficos.ojiva_horas.x,y:d.graficos.ojiva_horas.y,type:"scatter",mode:"lines+markers",line:{color:"#ed9a54",width:3},marker:{size:7,color:"#ed9a54"},hovertemplate:"Hasta %{x} horas<br>Acumulada: %{y}<extra></extra>"}],{xaxis:{...plotLayout.xaxis,title:"Límite superior (horas)"},yaxis:{...plotLayout.yaxis,title:"Frecuencia acumulada (Fi)"}});
+    plot("chart-hist-cgpa",[{x:d.graficos.hist_cgpa.x,y:d.graficos.hist_cgpa.y,type:"bar",width:d.graficos.hist_cgpa.ancho,marker:{color:"#49a887",line:{color:"#fff",width:1}},hovertemplate:"CGPA: %{x}<br>Frecuencia: %{y}<extra></extra>"}],{bargap:0.04,xaxis:{...plotLayout.xaxis,title:"CGPA (escala 0–4)"},yaxis:{...plotLayout.yaxis,title:"Frecuencia"}});
+
+    $("p-a").textContent=pct(d.probabilidad.pA);
+    $("p-b").textContent=pct(d.probabilidad.pB);
+    $("p-ab").textContent=pct(d.probabilidad.pAB);
+    $("p-union").textContent=pct(d.probabilidad.pUnion);
+    const unionIndependiente=d.probabilidad.pA+d.probabilidad.pB-d.probabilidad.producto;
+    $("union-independiente").textContent=`${pct(d.probabilidad.pA)} + ${pct(d.probabilidad.pB)} − (${pct(d.probabilidad.pA)} × ${pct(d.probabilidad.pB)}) = ${pct(unionIndependiente)}`;
+
+    $("finding-horas-media").textContent=fmt(d.horas.media,2)+" h";
+    $("finding-horas-mediana").textContent=fmt(d.horas.mediana,0)+" h";
+    $("finding-horas-moda").textContent=fmtModa(d.horas.moda,0)+" h";
+    $("finding-horas-rango").textContent=`${fmt(d.horas.min,0)} a ${fmt(d.horas.max,0)} h`;
+    $("finding-horas-respuesta").textContent=`Los estudiantes encuestados dedican en promedio ${fmt(d.horas.media,2)} horas diarias al estudio. La mediana de ${fmt(d.horas.mediana,0)} horas indica que al menos la mitad estudia esa cantidad o menos y al menos la mitad esa cantidad o más. La cantidad más frecuente es de ${fmtModa(d.horas.moda,0)} horas al día. En esta selección, ${entero(d.horas_1_a_4.cantidad)} estudiantes (${fmt(d.horas_1_a_4.porcentaje,1)}%) estudian entre 1 y 4 horas diarias.`;
+    $("finding-cgpa-media").textContent=fmt(d.cgpa.media,2);
+    $("finding-cgpa-mediana").textContent=fmt(d.cgpa.mediana,2);
+    $("finding-cgpa-moda").textContent=fmtModa(d.cgpa.moda,2);
+    $("finding-cgpa-rango").textContent=`${fmt(d.cgpa.min,0)} a ${fmt(d.cgpa.max,0)}`;
+    $("finding-cgpa-respuesta").textContent=`El rendimiento académico presenta un promedio de CGPA de ${fmt(d.cgpa.media,2)} sobre 4, con una mediana de ${fmt(d.cgpa.mediana,2)}. El intervalo de CGPA superior a 3,0 y hasta 4,0 reúne a ${entero(d.cgpa_mayor_3.cantidad)} estudiantes, aproximadamente el ${fmt(d.cgpa_mayor_3.porcentaje,1)}% de la muestra. ${d.cgpa_mayor_3.porcentaje >= 50 ? "Por tanto, la mayoría" : "En esta selección, una parte"} de los estudiantes presenta un CGPA en ese intervalo.`;
+    const preguntaHallazgo = d.pregunta_probabilidad;
+    $("finding-p-a").textContent=pct2(preguntaHallazgo.pA);
+    $("finding-p-b").textContent=pct2(preguntaHallazgo.pB);
+    $("finding-p-ab").textContent=pct2(preguntaHallazgo.pInterseccion);
+    $("finding-p-producto").textContent=pct2(preguntaHallazgo.producto);
+    $("finding-probabilidad-respuesta").textContent=`La probabilidad de seleccionar un estudiante que estudie al menos 3 horas al día y tenga un CGPA igual o superior a 3,21 es del ${fmt(preguntaHallazgo.pInterseccion*100,2)}%.`;
+    $("toast").classList.add("show"); setTimeout(()=>$("toast").classList.remove("show"),1000);
+  } catch(e) {
+    $("filter-count").textContent="Error al cargar el análisis.";
+    limpiarHallazgos("No fue posible cargar los hallazgos.");
+    console.error(e);
+  }
+}
+let timer;
+["programa","genero","hmin","hmax"].forEach(id=>$(id).addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(actualizar,180)}));
+$("reset").addEventListener("click",()=>{$("programa").value="Todos";$("genero").value="Todos";$("hmin").value=0;$("hmax").value={{max_horas}};actualizar()});
+$("dataset-prev").addEventListener("click",()=>actualizarDataset(datasetPaginaActual-1));
+$("dataset-next").addEventListener("click",()=>actualizarDataset(datasetPaginaActual+1));
+questionButtons.forEach((button,index) => button.addEventListener("click", () => seleccionarPregunta(button,index)));
+const navLinks = Array.from(document.querySelectorAll(".nav-item"));
+const navIndicator = document.querySelector(".nav-indicator");
+const navSections = navLinks.map(link => document.querySelector(link.hash)).filter(Boolean);
+function activarNav(id) {
+  const active = navLinks.find(link => link.hash === `#${id}`) || navLinks[0];
+  navLinks.forEach(link => {
+    const selected = link === active;
+    link.classList.toggle("active", selected);
+    if (selected) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+  navIndicator.style.height = `${active.offsetHeight}px`;
+  navIndicator.style.transform = `translateY(${active.offsetTop}px)`;
+}
+let navUpdateQueued = false;
+function actualizarNav() {
+  if (navUpdateQueued) return;
+  navUpdateQueued = true;
+  requestAnimationFrame(() => {
+    navUpdateQueued = false;
+    const marker = window.innerHeight * .32;
+    let active = navSections[0];
+    navSections.forEach(section => {
+      if (section.getBoundingClientRect().top <= marker) active = section;
+    });
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+      active = navSections[navSections.length - 1];
+    }
+    activarNav(active.id);
+  });
+}
+navLinks.forEach(link => link.addEventListener("click", () => activarNav(link.hash.slice(1))));
+window.addEventListener("scroll", actualizarNav, {passive:true});
+window.addEventListener("resize", actualizarNav);
+actualizarNav();
+actualizar();
+</script>
+</body>
+</html>
